@@ -1,0 +1,145 @@
+---
+title: "CS7200 Spring 25 Logic Grid Insights Project Normal Distribution ANOVA"
+author: 'Kaylah Facey and Abdelrahman Madkour'
+date: "2025"
+output: html_document
+---
+
+ 
+```{r setup, include=FALSE}
+#install and load packages here
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(data.table)
+library(ggplot2)
+set.seed(23)
+```
+
+#### RUN THIS AND VERIFY EVERYTHING APPEARS IN THE OUTPUT AS EXPECTED BEFORE YOU TURN IT IN
+
+```{r}
+
+# Insights all have a small difference in mu (20s)
+constant_delta <- list(
+  CROSS_OUT = 30,
+  OPENING = 50,
+  APPLY_IS = 70,
+  APPLY_NOT = 90,
+  APPLY_OR = 110,
+  APPLY_BEFORE_ONE_SPOT = 130,
+  APPLY_BEFORE_N_SPOTS = 150,
+  APPLY_BEFORE_UNDEFINED_SPOTS = 170,
+  SIMPLE_OR_SAME_CAT = 190,
+  SIMPLE_OR_DIFF_CAT = 210,
+  BEFORE_DIFF_CAT = 230,
+  BEFORE_ONE_SPOT_NOINFO = 250,
+  BEFORE_N_SPOTS_NOINFO = 270,
+  TRANS_ABC_TRUE = 290,
+  TRANS_ABC_FALSE = 310,
+  BEFORE_N_SPOTS_SHIFT = 330,
+  BEFORE_N_SPOTS_CROSSCHECK = 350,
+  TRANS_SETS = 370
+)
+
+# Insights are grouped. Within the group the difference in mu is very small (5s) but between groups it is obvious (30s)
+grouped_delta <- list(
+  # Rules
+  CROSS_OUT = 30,
+  OPENING = 35,
+  # Hints
+  APPLY_IS = 65,
+  APPLY_NOT = 70,
+  APPLY_OR = 75,
+  APPLY_BEFORE_ONE_SPOT = 80,
+  APPLY_BEFORE_N_SPOTS = 85,
+  # Beginner
+  APPLY_BEFORE_UNDEFINED_SPOTS = 115,
+  SIMPLE_OR_SAME_CAT = 120,
+  SIMPLE_OR_DIFF_CAT = 125,
+  BEFORE_DIFF_CAT = 130,
+  # Intermediate
+  BEFORE_ONE_SPOT_NOINFO = 160,
+  BEFORE_N_SPOTS_NOINFO = 165,
+  TRANS_ABC_TRUE = 170,
+  TRANS_ABC_FALSE = 175,
+  # Expert
+  BEFORE_N_SPOTS_SHIFT = 205,
+  BEFORE_N_SPOTS_CROSSCHECK = 210,
+  TRANS_SETS = 215
+)
+
+muss <- list(constant_delta, grouped_delta)
+
+# Testing with different sds.
+sds <- c(10, 30, 60)
+
+# Testing with different numbers of replicates 
+rs <- c(2, 5, 10)
+```
+
+```{r}
+for (mus in muss) {
+  for (sd in sds) {
+    for (r in rs) {
+      simdata<-data.frame(
+        a = c(),
+        b = c(),
+        mu = c()
+      );
+      for (insight in names(mus)) {
+        mu <- mus[insight]
+        for (i in 1:r) {
+          t <- rnorm(n = 1, mean = as.numeric(mu), sd = as.numeric(sd))
+          simdata <- rbind(simdata,c(t, insight))
+        }
+      }
+      colnames(simdata) <- c("Time", "Insight")
+      plot <- ggplot(simdata, aes(x=as.numeric(Time), color=Insight, fill = Insight)) + 
+        geom_histogram(aes(y=after_stat(density)), position="identity", alpha=0.5, binwidth = 20) +
+        geom_density(alpha=0.5) + 
+        labs(x = str_interp("Time (mean=${mu}, sd=${sd}, r=${r})"))
+      plot
+      print(plot)
+    }
+  }
+}
+```
+
+#### Additional formatting guidelines: 
+
+For questions where you need to print formulas, please use this formatting: 
+$$
+y = b_0 + b_1X
+$$
+
+
+how to print a vector:
+$$
+\begin{bmatrix}
+item \\ 
+item \\
+item
+\end{bmatrix}
+$$
+
+how to print a matrix:
+$$
+\begin{bmatrix}
+item & item & item\\
+item & item & item\\
+item & item & item\\
+\end{bmatrix}
+$$
+
+For questions where you need to print plots, please use clear formatting for title and axes labels (note: you don't have to use ggplot, you can use base R for plotting too).
+    
+  
+Example scatter plot:
+```{r}
+data(iris)
+ggplot(iris) + aes(Petal.Length,Sepal.Length,color= Species) +
+  geom_point() + theme_bw() + 
+  ggtitle("Relationship between petal and sepal length in iris flower species") + 
+  labs(x="Petal length (cm)", y="Sepal length (cm)")
+
+```
