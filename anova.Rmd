@@ -21,51 +21,33 @@ set.seed(23)
 
 # Insights all have a small difference in mu (20s)
 constant_delta <- list(
-  CROSS_OUT = 30,
-  OPENING = 50,
-  APPLY_IS = 70,
-  APPLY_NOT = 90,
-  APPLY_OR = 110,
-  APPLY_BEFORE_ONE_SPOT = 130,
-  APPLY_BEFORE_N_SPOTS = 150,
-  APPLY_BEFORE_UNDEFINED_SPOTS = 170,
-  SIMPLE_OR_SAME_CAT = 190,
-  SIMPLE_OR_DIFF_CAT = 210,
-  BEFORE_DIFF_CAT = 230,
-  BEFORE_ONE_SPOT_NOINFO = 250,
-  BEFORE_N_SPOTS_NOINFO = 270,
-  TRANS_ABC_TRUE = 290,
-  TRANS_ABC_FALSE = 310,
-  BEFORE_N_SPOTS_SHIFT = 330,
-  BEFORE_N_SPOTS_CROSSCHECK = 350,
-  TRANS_SETS = 370
+  SIMPLE_OR_SAME_CAT = 30,
+  SIMPLE_OR_DIFF_CAT = 50,
+  BEFORE_DIFF_CAT = 70,
+  BEFORE_ONE_SPOT_NOINFO = 90,
+  BEFORE_N_SPOTS_NOINFO = 110,
+  TRANS_ABC_TRUE = 130,
+  TRANS_ABC_FALSE = 150,
+  BEFORE_N_SPOTS_SHIFT = 170,
+  BEFORE_N_SPOTS_CROSSCHECK = 190,
+  TRANS_SETS = 210
 )
 
-# Insights are grouped. Within the group the difference in mu is very small (5s) but between groups it is obvious (30s)
+# Insights are grouped. Within the group the difference in mu is very small (5s) but between groups it is obvious (20s)
 grouped_delta <- list(
-  # Rules
-  CROSS_OUT = 30,
-  OPENING = 35,
-  # Hints
-  APPLY_IS = 65,
-  APPLY_NOT = 70,
-  APPLY_OR = 75,
-  APPLY_BEFORE_ONE_SPOT = 80,
-  APPLY_BEFORE_N_SPOTS = 85,
   # Beginner
-  APPLY_BEFORE_UNDEFINED_SPOTS = 115,
-  SIMPLE_OR_SAME_CAT = 120,
-  SIMPLE_OR_DIFF_CAT = 125,
-  BEFORE_DIFF_CAT = 130,
+  SIMPLE_OR_SAME_CAT = 30,
+  SIMPLE_OR_DIFF_CAT = 35,
+  BEFORE_DIFF_CAT = 40,
   # Intermediate
-  BEFORE_ONE_SPOT_NOINFO = 160,
-  BEFORE_N_SPOTS_NOINFO = 165,
-  TRANS_ABC_TRUE = 170,
-  TRANS_ABC_FALSE = 175,
+  BEFORE_ONE_SPOT_NOINFO = 60,
+  BEFORE_N_SPOTS_NOINFO = 65,
+  TRANS_ABC_TRUE = 70,
+  TRANS_ABC_FALSE = 75,
   # Expert
-  BEFORE_N_SPOTS_SHIFT = 205,
-  BEFORE_N_SPOTS_CROSSCHECK = 210,
-  TRANS_SETS = 215
+  BEFORE_N_SPOTS_SHIFT = 95,
+  BEFORE_N_SPOTS_CROSSCHECK = 100,
+  TRANS_SETS = 105
 )
 
 muss <- list(constant_delta, grouped_delta)
@@ -74,7 +56,7 @@ muss <- list(constant_delta, grouped_delta)
 sds <- c(10, 30, 60)
 
 # Testing with different numbers of replicates 
-rs <- c(2, 5, 10)
+rs <- c(5, 10, 20)
 ```
 
 ```{r}
