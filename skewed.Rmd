@@ -1,0 +1,84 @@
+---
+title: "CS7200 Spring 25 HW #"
+author: '[YOUR NAME]'
+date: "01/07/2025"
+output: html_document
+---
+
+
+ 
+```{r setup, include=FALSE}
+#install and load packages here
+knitr::opts_chunk$set(echo = TRUE)
+library(data.table)
+library(ggplot2)
+```
+
+#### RUN THIS AND VERIFY EVERYTHING APPEARS IN THE OUTPUT AS EXPECTED BEFORE YOU TURN IT IN
+
+#### Problem #1
+
+##### a)
+```{r}
+#add code here 
+insights <- c("CROSS_OUT","OPENING","APPLY_IS","APPLY_NOT","APPLY_OR","APPLY_BEFORE_ONE_SPOT","APPLY_BEFORE_N_SPOTS","APPLY_BEFORE_UNDEFINED_SPOTS","SIMPLE_OR_SAME_CAT","SIMPLE_OR_DIFF_CAT","BEFORE_DIFF_CAT","BEFORE_ONE_SPOT_NOINFO","BEFORE_N_SPOTS_NOINFO","TRANS_ABC_TRUE","TRANS_ABC_FALSE","BEFORE_N_SPOTS_SHIFT","BEFORE_N_SPOTS_CROSSCHECK","TRANS_SETS")
+max_time <- 100
+df<- data.frame(matrix(nrow=1000,ncol=length(insights)))
+colnames(df) <- insights
+for (i in 1:length(insights)){
+    skewdness <- runif(n=1,min=1,max=7)
+    times <- rbeta(n=1000,shape1 = 10, shape2 = skewdness) * max_time 
+    df[insights[i]] <- times
+}
+```
+
+add interpretation and notes here 
+
+##### b)
+```{r}
+hist(df$CROSS_OUT)
+```
+
+##### c)
+  
+  
+#### Additional formatting guidelines: 
+
+  
+
+ wjFor questions where you need to print formulas, please use this formatting: 
+$$
+y = b_0 + b_1X
+$$
+
+
+how to print a vector:
+$$
+\begin{bmatrix}
+item \\ 
+item \\
+item
+\end{bmatrix}
+$$
+
+how to print a matrix:
+$$
+\begin{bmatrix}
+item & item & item\\
+item & item & item\\
+item & item & item\\
+\end{bmatrix}
+$$
+
+For questions where you need to print plots, please use clear formatting for title and axes labels (note: you don't have to use ggplot, you can use base R for plotting too).
+    
+  
+Example scatter plot:
+```{r}
+data(iris)
+ggplot(iris) + aes(Petal.Length,Sepal.Length,color= Species) +
+  geom_point() + theme_bw() + 
+  ggtitle("Relationship between petal and sepal length in iris flower species") + 
+  labs(x="Petal length (cm)", y="Sepal length (cm)")
+
+```
