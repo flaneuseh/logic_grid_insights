@@ -12,12 +12,31 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(data.table)
 library(ggplot2)
+# install.packages("remotes")
+# remotes::install_github("easystats/report")
+library(report)
+# install.packages("multcomp")
+library(multcomp)
 set.seed(23)
+library(broom)
 ```
 
 #### RUN THIS AND VERIFY EVERYTHING APPEARS IN THE OUTPUT AS EXPECTED BEFORE YOU TURN IT IN
 
 ```{r}
+
+true_order <- c(
+  'SIMPLE_OR_SAME_CAT',
+  'SIMPLE_OR_DIFF_CAT',
+  'BEFORE_DIFF_CAT',
+  'BEFORE_ONE_SPOT_NOINFO',
+  'BEFORE_N_SPOTS_NOINFO',
+  'TRANS_ABC_TRUE',
+  'TRANS_ABC_FALSE',
+  'BEFORE_N_SPOTS_SHIFT',
+  'BEFORE_N_SPOTS_CROSSCHECK',
+  'TRANS_SETS'
+)
 
 # Insights all have a small difference in mu (20s)
 constant_delta <- list(
@@ -33,7 +52,7 @@ constant_delta <- list(
   TRANS_SETS = 210
 )
 
-# Insights are grouped. Within the group the difference in mu is very small (5s) but between groups it is obvious (20s)
+# Insights are grouped. Within the group the difference in mu is very small (5s) but between groups it is more pronounced (20s)
 grouped_delta <- list(
   # Beginner
   SIMPLE_OR_SAME_CAT = 30,
@@ -56,7 +75,7 @@ muss <- list(constant_delta, grouped_delta)
 sds <- c(10, 30, 60)
 
 # Testing with different numbers of replicates 
-rs <- c(5, 10, 20)
+rs <- c(2, 5, 10, 15, 20)
 ```
 
 ```{r}
@@ -75,17 +94,60 @@ for (mus in muss) {
           simdata <- rbind(simdata,c(t, insight))
         }
       }
+      mu_name = ""
+      if (identical(mus, constant_delta)) {
+        mu_name = "constant"
+      }
+      else if (identical(mus, grouped_delta)) {
+        mu_name = "grouped"
+      }
       colnames(simdata) <- c("Time", "Insight")
-      plot <- ggplot(simdata, aes(x=as.numeric(Time), color=Insight, fill = Insight)) + 
+      simdata$Time <- as.numeric(simdata$Time)
+      simdata$Insight <- as.factor(simdata$Insight)
+      write.csv(simdata, str_interp("simdata_mu-${mu_name}_sd-${sd}_r-${r}"))
+      
+      true_mus <- unname(unlist(mus))
+      true_upper <- true_mus + sd
+      true_lower <- true_mus - sd
+      
+      true.df <- data.frame(Insight=names(mus), true.mu=true_mus, true.upper=true_upper, true.lower=true_lower)
+      
+      pdf(str_interp("simhistogram_mu-${mu_name}_sd-${sd}_r-${r}.pdf"))
+      plot <- ggplot(simdata, aes(x=Time, color=Insight, fill = Insight)) + 
         geom_histogram(aes(y=after_stat(density)), position="identity", alpha=0.5, binwidth = 20) +
         geom_density(alpha=0.5) + 
         labs(x = str_interp("Time (mean=${mu}, sd=${sd}, r=${r})"))
       plot
       print(plot)
+      dev.off()
+      
+      pdf(str_interp("simboxplot_mu-${mu_name}_sd-${sd}_r-${r}.pdf"))
+      plot <- ggplot(simdata, aes(x=factor(Insight, level=true_order), y=Time, color=Insight)) + 
+        geom_crossbar(data = true.df, aes(x=factor(Insight, level=true_order), y=true.mu, ymin=true.upper, ymax=true.lower), color="grey") +
+        geom_jitter() +
+        geom_boxplot(alpha = 0) +
+        labs(y = "Time", x = str_interp("Insight (mean=${mu_name}, sd=${sd}, r=${r})"))
+      plot
+      print(plot)
+      dev.off()
+      
+      print("--------------------------------")
+      print(str_interp("mean=${mu_name}, sd=${sd}, r=${r}"))
+      
+      anova <- aov(Time ~ Insight,
+        data = simdata
+      )
+      write.csv(tidy(anova), str_interp("simanova_mu-${mu_name}_sd-${sd}_r-${r}"))
+      
+      tukey <- glht(anova, linfct = mcp(Insight="Tukey"))
+      write.csv(tidy(tukey), str_interp("simtukey_mu-${mu_name}_sd-${sd}_r-${r}"))
+      
+      print("--------------------------------")
     }
   }
 }
 ```
+
 
 #### Additional formatting guidelines: 
 
