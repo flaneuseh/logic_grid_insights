@@ -77,9 +77,20 @@ sds <- c(10, 30, 60)
 
 # Testing with different numbers of replicates 
 rs <- c(2, 5, 10, 15, 20)
+
 ```
 
 ```{r}
+for (sd in sds) {
+  print(str_interp("samples needed to detect difference of 20s between insights with SD ${sd} at sig level .1 and power .8: "))
+  power_samples <- pwr.anova.test(k=10,f=20/sd,sig.level=.1,power=.8)
+  print(power_samples)
+  
+  print(str_interp("samples needed to detect difference of 20s between groups with SD ${sd} at sig level .1 and power .8: "))
+  power_samples <- pwr.anova.test(k=3,f=20/sd,sig.level=.1,power=.8)
+  print(power_samples)
+}
+# 2FA for difference within vs between insight groups
 for (mus in muss) {
   for (sd in sds) {
     for (r in rs) {
