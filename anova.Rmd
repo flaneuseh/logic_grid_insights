@@ -19,6 +19,7 @@ library(report)
 library(multcomp)
 set.seed(23)
 library(broom)
+library(pwr)
 ```
 
 #### RUN THIS AND VERIFY EVERYTHING APPEARS IN THE OUTPUT AS EXPECTED BEFORE YOU TURN IT IN
@@ -82,6 +83,9 @@ rs <- c(2, 5, 10, 15, 20)
 for (mus in muss) {
   for (sd in sds) {
     for (r in rs) {
+      print("--------------------------------")
+      dataname <- str_interp("mu-${mu_name}_sd-${sd}_r-${r}")
+      print(dataname)
       simdata<-data.frame(
         a = c(),
         b = c(),
@@ -104,7 +108,7 @@ for (mus in muss) {
       colnames(simdata) <- c("Time", "Insight")
       simdata$Time <- as.numeric(simdata$Time)
       simdata$Insight <- as.factor(simdata$Insight)
-      write.csv(simdata, str_interp("simdata_mu-${mu_name}_sd-${sd}_r-${r}"))
+      write.csv(simdata, str_interp("${dataname}_data.csv"))
       
       true_mus <- unname(unlist(mus))
       true_upper <- true_mus + sd
@@ -112,7 +116,7 @@ for (mus in muss) {
       
       true.df <- data.frame(Insight=names(mus), true.mu=true_mus, true.upper=true_upper, true.lower=true_lower)
       
-      pdf(str_interp("simhistogram_mu-${mu_name}_sd-${sd}_r-${r}.pdf"))
+      pdf(str_interp("${dataname}_histogram.pdf"))
       plot <- ggplot(simdata, aes(x=Time, color=Insight, fill = Insight)) + 
         geom_histogram(aes(y=after_stat(density)), position="identity", alpha=0.5, binwidth = 20) +
         geom_density(alpha=0.5) + 
@@ -121,7 +125,7 @@ for (mus in muss) {
       print(plot)
       dev.off()
       
-      pdf(str_interp("simboxplot_mu-${mu_name}_sd-${sd}_r-${r}.pdf"))
+      pdf(str_interp("${dataname}_boxplot.pdf"))
       plot <- ggplot(simdata, aes(x=factor(Insight, level=true_order), y=Time, color=Insight)) + 
         geom_crossbar(data = true.df, aes(x=factor(Insight, level=true_order), y=true.mu, ymin=true.upper, ymax=true.lower), color="grey") +
         geom_jitter() +
@@ -131,16 +135,15 @@ for (mus in muss) {
       print(plot)
       dev.off()
       
-      print("--------------------------------")
-      print(str_interp("mean=${mu_name}, sd=${sd}, r=${r}"))
-      
       anova <- aov(Time ~ Insight,
         data = simdata
       )
-      write.csv(tidy(anova), str_interp("simanova_mu-${mu_name}_sd-${sd}_r-${r}"))
+      tidyanova <- tidy(anova)
+      write.csv(tidyanova, str_interp("${dataname}_anova.csv"))
       
       tukey <- glht(anova, linfct = mcp(Insight="Tukey"))
-      write.csv(tidy(tukey), str_interp("simtukey_mu-${mu_name}_sd-${sd}_r-${r}"))
+      tidytukey <- tidy(tukey)
+      write.csv(tidytukey, str_interp("${dataname}_tukey.csv"))
       
       print("--------------------------------")
     }
