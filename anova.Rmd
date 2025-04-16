@@ -273,8 +273,9 @@ for (mus in muss) {
       print(plot)
       dev.off()
       
-      anova <- aov(Time ~ Insight,
-        data = simdata
+      anova <- aov(
+        Time ~ Insight,
+        data = simdata,
       )
       tidyanova <- tidy(anova)
       write.csv(tidyanova, str_interp("${dataname}_anova.csv"))
