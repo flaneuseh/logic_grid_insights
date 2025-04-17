@@ -20,6 +20,8 @@ library(multcomp)
 set.seed(23)
 library(broom)
 library(pwr)
+# install.packages("PMCMRplus")
+library("PMCMRplus")
 ```
 
 #### RUN THIS AND VERIFY EVERYTHING APPEARS IN THE OUTPUT AS EXPECTED BEFORE YOU TURN IT IN
@@ -202,15 +204,24 @@ rs <- c(2, 5, 10, 15, 20)
 ```
 
 ```{r}
+df_power <- data.frame(
+  sd = c(),
+  r = c(),
+  power = c()
+)
 for (sd in sds) {
-  print(str_interp("samples needed to detect difference of 20s between insights with SD ${sd} at sig level .1 and power .8: "))
-  power_samples <- pwr.anova.test(k=10,f=min(20/sd, .9),sig.level=.1,power=.8)
-  print(power_samples)
-  
-  print(str_interp("samples needed to detect difference of 5s between insights with SD ${sd} at sig level .1 and power .8: "))
-  power_samples <- pwr.anova.test(k=10,f=min(5/sd, .9),sig.level=.1,power=.8)
-  print(power_samples)
+  for (r in rs) {
+    print(str_interp("samples needed to detect difference of 20s between all insights with SD ${sd} at sig level .1 and power .8: "))
+    power_calc <- power.tukey.test(groups=11,delta=20,within.var=sd^2, sig.level=.1, n = r)
+    print(power_samples)
+    df_power <- rbind(df_power,c(sd, r, power_calc$power))
+  }
 }
+colnames(df_power) <- c("sd", "r", "power")
+write.csv(df_power, "power.csv")
+```
+
+```{r}
 # 2FA for difference within vs between insight groups
 overview <- data.frame(
   mu = c(),
@@ -265,10 +276,15 @@ for (mus in muss) {
       
       pdf(str_interp("${dataname}_boxplot.pdf"))
       plot <- ggplot(simdata, aes(x=factor(Insight, level=true_order), y=Time, color=Insight)) + 
+        ylim(-50, 300) +
         geom_crossbar(data = true.df, aes(x=factor(Insight, level=true_order), y=true.mu, ymin=true.upper, ymax=true.lower), color="grey") +
         geom_jitter() +
         geom_boxplot(alpha = 0) +
-        labs(y = "Time", x = str_interp("Insight (mean=${mu_name}, sd=${sd}, r=${r})"))
+        labs(y = "Time", x = str_interp("mean=${mu_name}, sd=${sd}, r=${r})")) +
+        theme(
+          axis.text.x = element_blank(),
+          axis.ticks.x = element_blank()
+        )
       plot
       print(plot)
       dev.off()
