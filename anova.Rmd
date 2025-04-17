@@ -19,6 +19,9 @@ library(report)
 library(multcomp)
 set.seed(23)
 library(broom)
+library(pwr)
+# install.packages("PMCMRplus")
+library("PMCMRplus")
 ```
 
 #### RUN THIS AND VERIFY EVERYTHING APPEARS IN THE OUTPUT AS EXPECTED BEFORE YOU TURN IT IN
@@ -26,6 +29,7 @@ library(broom)
 ```{r}
 
 true_order <- c(
+  'APPLY_BEFORE_UNDEFINED_SPOTS',
   'SIMPLE_OR_SAME_CAT',
   'SIMPLE_OR_DIFF_CAT',
   'BEFORE_DIFF_CAT',
@@ -40,33 +44,153 @@ true_order <- c(
 
 # Insights all have a small difference in mu (20s)
 constant_delta <- list(
-  SIMPLE_OR_SAME_CAT = 30,
-  SIMPLE_OR_DIFF_CAT = 50,
-  BEFORE_DIFF_CAT = 70,
-  BEFORE_ONE_SPOT_NOINFO = 90,
-  BEFORE_N_SPOTS_NOINFO = 110,
-  TRANS_ABC_TRUE = 130,
-  TRANS_ABC_FALSE = 150,
-  BEFORE_N_SPOTS_SHIFT = 170,
-  BEFORE_N_SPOTS_CROSSCHECK = 190,
-  TRANS_SETS = 210
+  APPLY_BEFORE_UNDEFINED_SPOTS = 30,
+  SIMPLE_OR_SAME_CAT = 50,
+  SIMPLE_OR_DIFF_CAT = 70,
+  BEFORE_DIFF_CAT = 90,
+  BEFORE_ONE_SPOT_NOINFO = 110,
+  BEFORE_N_SPOTS_NOINFO = 130,
+  TRANS_ABC_TRUE = 150,
+  TRANS_ABC_FALSE = 170,
+  BEFORE_N_SPOTS_SHIFT = 190,
+  BEFORE_N_SPOTS_CROSSCHECK = 210,
+  TRANS_SETS = 230
 )
+
+individual_contrasts <- c(
+  "SIMPLE_OR_SAME_CAT - APPLY_BEFORE_UNDEFINED_SPOTS",
+  "SIMPLE_OR_DIFF_CAT - APPLY_BEFORE_UNDEFINED_SPOTS",
+  "BEFORE_DIFF_CAT - APPLY_BEFORE_UNDEFINED_SPOTS",
+  "BEFORE_ONE_SPOT_NOINFO - APPLY_BEFORE_UNDEFINED_SPOTS",
+  "BEFORE_N_SPOTS_NOINFO - APPLY_BEFORE_UNDEFINED_SPOTS",
+  "TRANS_ABC_TRUE - APPLY_BEFORE_UNDEFINED_SPOTS",
+  "TRANS_ABC_FALSE - APPLY_BEFORE_UNDEFINED_SPOTS",
+  "BEFORE_N_SPOTS_SHIFT - APPLY_BEFORE_UNDEFINED_SPOTS",
+  "BEFORE_N_SPOTS_CROSSCHECK - APPLY_BEFORE_UNDEFINED_SPOTS",
+  "TRANS_SETS - APPLY_BEFORE_UNDEFINED_SPOTS",
+  
+  "SIMPLE_OR_SAME_CAT - SIMPLE_OR_DIFF_CAT",
+  "SIMPLE_OR_SAME_CAT - BEFORE_DIFF_CAT",
+  "SIMPLE_OR_SAME_CAT - BEFORE_ONE_SPOT_NOINFO",
+  "SIMPLE_OR_SAME_CAT - BEFORE_N_SPOTS_NOINFO",
+  "TRANS_ABC_TRUE - SIMPLE_OR_SAME_CAT",
+  "TRANS_ABC_FALSE - SIMPLE_OR_SAME_CAT",
+  "SIMPLE_OR_SAME_CAT - BEFORE_N_SPOTS_SHIFT",
+  "SIMPLE_OR_SAME_CAT - BEFORE_N_SPOTS_CROSSCHECK",
+  "TRANS_SETS - SIMPLE_OR_SAME_CAT",
+
+  "SIMPLE_OR_DIFF_CAT - BEFORE_DIFF_CAT",
+  "SIMPLE_OR_DIFF_CAT - BEFORE_ONE_SPOT_NOINFO",
+  "SIMPLE_OR_DIFF_CAT - BEFORE_N_SPOTS_NOINFO",
+  "TRANS_ABC_TRUE - SIMPLE_OR_DIFF_CAT",
+  "TRANS_ABC_FALSE - SIMPLE_OR_DIFF_CAT",
+  "SIMPLE_OR_DIFF_CAT - BEFORE_N_SPOTS_SHIFT",
+  "SIMPLE_OR_DIFF_CAT - BEFORE_N_SPOTS_CROSSCHECK",
+  "TRANS_SETS - SIMPLE_OR_DIFF_CAT",
+  
+  "BEFORE_ONE_SPOT_NOINFO - BEFORE_DIFF_CAT",
+  "BEFORE_N_SPOTS_NOINFO - BEFORE_DIFF_CAT",
+  "TRANS_ABC_TRUE - BEFORE_DIFF_CAT",
+  "TRANS_ABC_FALSE - BEFORE_DIFF_CAT",
+  "BEFORE_N_SPOTS_SHIFT - BEFORE_DIFF_CAT",
+  "BEFORE_N_SPOTS_CROSSCHECK - BEFORE_DIFF_CAT",
+  "TRANS_SETS - BEFORE_DIFF_CAT",
+  
+  "BEFORE_ONE_SPOT_NOINFO - BEFORE_N_SPOTS_NOINFO",
+  "TRANS_ABC_TRUE - BEFORE_ONE_SPOT_NOINFO",
+  "TRANS_ABC_FALSE - BEFORE_ONE_SPOT_NOINFO",
+  "BEFORE_ONE_SPOT_NOINFO - BEFORE_N_SPOTS_SHIFT",
+  "BEFORE_ONE_SPOT_NOINFO - BEFORE_N_SPOTS_CROSSCHECK",
+  "TRANS_SETS - BEFORE_ONE_SPOT_NOINFO",
+  
+  "TRANS_ABC_TRUE - BEFORE_N_SPOTS_NOINFO",
+  "TRANS_ABC_FALSE - BEFORE_N_SPOTS_NOINFO",
+  "BEFORE_N_SPOTS_SHIFT - BEFORE_N_SPOTS_NOINFO",
+  "BEFORE_N_SPOTS_NOINFO - BEFORE_N_SPOTS_CROSSCHECK",
+  "TRANS_SETS - BEFORE_N_SPOTS_NOINFO",
+
+  "TRANS_ABC_TRUE - TRANS_ABC_FALSE",
+  "TRANS_ABC_TRUE - BEFORE_N_SPOTS_SHIFT",
+  "TRANS_ABC_TRUE - BEFORE_N_SPOTS_CROSSCHECK",
+  "TRANS_SETS - TRANS_ABC_TRUE",
+  
+  "TRANS_ABC_FALSE - BEFORE_N_SPOTS_SHIFT",
+  "TRANS_ABC_FALSE - BEFORE_N_SPOTS_CROSSCHECK",
+  "TRANS_SETS - TRANS_ABC_FALSE",
+  
+  "BEFORE_N_SPOTS_SHIFT - BEFORE_N_SPOTS_CROSSCHECK",
+  "TRANS_SETS - BEFORE_N_SPOTS_SHIFT",
+  
+  "TRANS_SETS - BEFORE_N_SPOTS_CROSSCHECK"
+)
+
 
 # Insights are grouped. Within the group the difference in mu is very small (5s) but between groups it is more pronounced (20s)
 grouped_delta <- list(
   # Beginner
-  SIMPLE_OR_SAME_CAT = 30,
-  SIMPLE_OR_DIFF_CAT = 35,
-  BEFORE_DIFF_CAT = 40,
+  APPLY_BEFORE_UNDEFINED_SPOTS = 30,
+  SIMPLE_OR_SAME_CAT = 35,
+  SIMPLE_OR_DIFF_CAT = 40,
+  BEFORE_DIFF_CAT = 45,
   # Intermediate
-  BEFORE_ONE_SPOT_NOINFO = 60,
-  BEFORE_N_SPOTS_NOINFO = 65,
-  TRANS_ABC_TRUE = 70,
-  TRANS_ABC_FALSE = 75,
+  BEFORE_ONE_SPOT_NOINFO = 65,
+  BEFORE_N_SPOTS_NOINFO = 70,
+  TRANS_ABC_TRUE = 75,
+  TRANS_ABC_FALSE = 80,
   # Expert
-  BEFORE_N_SPOTS_SHIFT = 95,
-  BEFORE_N_SPOTS_CROSSCHECK = 100,
-  TRANS_SETS = 105
+  BEFORE_N_SPOTS_SHIFT = 100,
+  BEFORE_N_SPOTS_CROSSCHECK = 105,
+  TRANS_SETS = 110
+)
+
+group_contrasts <- list(
+  "BEFORE_ONE_SPOT_NOINFO - APPLY_BEFORE_UNDEFINED_SPOTS",
+  "BEFORE_N_SPOTS_NOINFO - APPLY_BEFORE_UNDEFINED_SPOTS",
+  "TRANS_ABC_TRUE - APPLY_BEFORE_UNDEFINED_SPOTS",
+  "TRANS_ABC_FALSE - APPLY_BEFORE_UNDEFINED_SPOTS",
+  "BEFORE_N_SPOTS_SHIFT - APPLY_BEFORE_UNDEFINED_SPOTS",
+  "BEFORE_N_SPOTS_CROSSCHECK - APPLY_BEFORE_UNDEFINED_SPOTS",
+  "TRANS_SETS - APPLY_BEFORE_UNDEFINED_SPOTS",
+  
+  "SIMPLE_OR_SAME_CAT - BEFORE_ONE_SPOT_NOINFO",
+  "SIMPLE_OR_SAME_CAT - BEFORE_N_SPOTS_NOINFO",
+  "TRANS_ABC_TRUE - SIMPLE_OR_SAME_CAT",
+  "TRANS_ABC_FALSE - SIMPLE_OR_SAME_CAT",
+  "SIMPLE_OR_SAME_CAT - BEFORE_N_SPOTS_SHIFT",
+  "SIMPLE_OR_SAME_CAT - BEFORE_N_SPOTS_CROSSCHECK",
+  "TRANS_SETS - SIMPLE_OR_SAME_CAT",
+
+  "SIMPLE_OR_DIFF_CAT - BEFORE_ONE_SPOT_NOINFO",
+  "SIMPLE_OR_DIFF_CAT - BEFORE_N_SPOTS_NOINFO",
+  "TRANS_ABC_TRUE - SIMPLE_OR_DIFF_CAT",
+  "TRANS_ABC_FALSE - SIMPLE_OR_DIFF_CAT",
+  "SIMPLE_OR_DIFF_CAT - BEFORE_N_SPOTS_SHIFT",
+  "SIMPLE_OR_DIFF_CAT - BEFORE_N_SPOTS_CROSSCHECK",
+  "TRANS_SETS - SIMPLE_OR_DIFF_CAT",
+  
+  "BEFORE_ONE_SPOT_NOINFO - BEFORE_DIFF_CAT",
+  "BEFORE_N_SPOTS_NOINFO - BEFORE_DIFF_CAT",
+  "TRANS_ABC_TRUE - BEFORE_DIFF_CAT",
+  "TRANS_ABC_FALSE - BEFORE_DIFF_CAT",
+  "BEFORE_N_SPOTS_SHIFT - BEFORE_DIFF_CAT",
+  "BEFORE_N_SPOTS_CROSSCHECK - BEFORE_DIFF_CAT",
+  "TRANS_SETS - BEFORE_DIFF_CAT",
+  
+  "BEFORE_ONE_SPOT_NOINFO - BEFORE_N_SPOTS_SHIFT",
+  "BEFORE_ONE_SPOT_NOINFO - BEFORE_N_SPOTS_CROSSCHECK",
+  "TRANS_SETS - BEFORE_ONE_SPOT_NOINFO",
+  
+  "BEFORE_N_SPOTS_SHIFT - BEFORE_N_SPOTS_NOINFO",
+  "BEFORE_N_SPOTS_NOINFO - BEFORE_N_SPOTS_CROSSCHECK",
+  "TRANS_SETS - BEFORE_N_SPOTS_NOINFO",
+
+  "TRANS_ABC_TRUE - BEFORE_N_SPOTS_SHIFT",
+  "TRANS_ABC_TRUE - BEFORE_N_SPOTS_CROSSCHECK",
+  "TRANS_SETS - TRANS_ABC_TRUE",
+  
+  "TRANS_ABC_FALSE - BEFORE_N_SPOTS_SHIFT",
+  "TRANS_ABC_FALSE - BEFORE_N_SPOTS_CROSSCHECK",
+  "TRANS_SETS - TRANS_ABC_FALSE"
 )
 
 muss <- list(constant_delta, grouped_delta)
@@ -76,12 +200,48 @@ sds <- c(10, 30, 60)
 
 # Testing with different numbers of replicates 
 rs <- c(2, 5, 10, 15, 20)
+
 ```
 
 ```{r}
+df_power <- data.frame(
+  sd = c(),
+  r = c(),
+  power = c()
+)
+for (sd in sds) {
+  for (r in rs) {
+    print(str_interp("samples needed to detect difference of 20s between all insights with SD ${sd} at sig level .1 and power .8: "))
+    power_calc <- power.tukey.test(groups=11,delta=20,within.var=sd^2, sig.level=.1, n = r)
+    print(power_samples)
+    df_power <- rbind(df_power,c(sd, r, power_calc$power))
+  }
+}
+colnames(df_power) <- c("sd", "r", "power")
+write.csv(df_power, "power.csv")
+```
+
+```{r}
+# 2FA for difference within vs between insight groups
+overview <- data.frame(
+  mu = c(),
+  sd = c(),
+  r = c(),
+  anova_test = c(),
+  tukey_individuals_pct = c(),
+  tukey_groups_pct = c()
+)
 for (mus in muss) {
   for (sd in sds) {
     for (r in rs) {
+      mu_name = ""
+      if (identical(mus, constant_delta)) {
+        mu_name = "constant_delta"
+      }
+      else if (identical(mus, grouped_delta)) {
+        mu_name = "grouped_delta"
+      }
+      dataname <- str_interp("mu-${mu_name}_sd-${sd}_r-${r}")
       simdata<-data.frame(
         a = c(),
         b = c(),
@@ -94,17 +254,10 @@ for (mus in muss) {
           simdata <- rbind(simdata,c(t, insight))
         }
       }
-      mu_name = ""
-      if (identical(mus, constant_delta)) {
-        mu_name = "constant"
-      }
-      else if (identical(mus, grouped_delta)) {
-        mu_name = "grouped"
-      }
       colnames(simdata) <- c("Time", "Insight")
       simdata$Time <- as.numeric(simdata$Time)
       simdata$Insight <- as.factor(simdata$Insight)
-      write.csv(simdata, str_interp("simdata_mu-${mu_name}_sd-${sd}_r-${r}"))
+      write.csv(simdata, str_interp("${dataname}_data.csv"))
       
       true_mus <- unname(unlist(mus))
       true_upper <- true_mus + sd
@@ -112,7 +265,7 @@ for (mus in muss) {
       
       true.df <- data.frame(Insight=names(mus), true.mu=true_mus, true.upper=true_upper, true.lower=true_lower)
       
-      pdf(str_interp("simhistogram_mu-${mu_name}_sd-${sd}_r-${r}.pdf"))
+      pdf(str_interp("${dataname}_histogram.pdf"))
       plot <- ggplot(simdata, aes(x=Time, color=Insight, fill = Insight)) + 
         geom_histogram(aes(y=after_stat(density)), position="identity", alpha=0.5, binwidth = 20) +
         geom_density(alpha=0.5) + 
@@ -121,31 +274,59 @@ for (mus in muss) {
       print(plot)
       dev.off()
       
-      pdf(str_interp("simboxplot_mu-${mu_name}_sd-${sd}_r-${r}.pdf"))
+      pdf(str_interp("${dataname}_boxplot.pdf"))
       plot <- ggplot(simdata, aes(x=factor(Insight, level=true_order), y=Time, color=Insight)) + 
+        ylim(-50, 300) +
         geom_crossbar(data = true.df, aes(x=factor(Insight, level=true_order), y=true.mu, ymin=true.upper, ymax=true.lower), color="grey") +
         geom_jitter() +
         geom_boxplot(alpha = 0) +
-        labs(y = "Time", x = str_interp("Insight (mean=${mu_name}, sd=${sd}, r=${r})"))
+        labs(y = "Time", x = str_interp("mean=${mu_name}, sd=${sd}, r=${r})")) +
+        theme(
+          axis.text.x = element_blank(),
+          axis.ticks.x = element_blank()
+        )
       plot
       print(plot)
       dev.off()
       
-      print("--------------------------------")
-      print(str_interp("mean=${mu_name}, sd=${sd}, r=${r}"))
-      
-      anova <- aov(Time ~ Insight,
-        data = simdata
+      anova <- aov(
+        Time ~ Insight,
+        data = simdata,
       )
-      write.csv(tidy(anova), str_interp("simanova_mu-${mu_name}_sd-${sd}_r-${r}"))
+      tidyanova <- tidy(anova)
+      write.csv(tidyanova, str_interp("${dataname}_anova.csv"))
+      anova_test <- tidyanova[6]$p.value[1]
       
       tukey <- glht(anova, linfct = mcp(Insight="Tukey"))
-      write.csv(tidy(tukey), str_interp("simtukey_mu-${mu_name}_sd-${sd}_r-${r}"))
+      tidytukey <- tidy(tukey)
+      write.csv(tidytukey, str_interp("${dataname}_tukey.csv"))
       
-      print("--------------------------------")
+      total_individual_contrasts <- length(individual_contrasts)
+      found_individual_contrasts <- 0
+      for (contrast in individual_contrasts){
+        p <- tidytukey[which(tidytukey$contrast == contrast), ]$adj.p.value
+        if (p < .1) {
+          found_individual_contrasts <- found_individual_contrasts + 1
+        }
+      }
+      tukey_individuals_pct = found_individual_contrasts/total_individual_contrasts
+      
+      total_group_contrasts <- length(group_contrasts)
+      found_group_contrasts <- 0
+      for (contrast in group_contrasts){
+        p <- tidytukey[which(tidytukey$contrast == contrast), ]$adj.p.value
+        if (p < .1) {
+          found_group_contrasts <- found_group_contrasts + 1
+        }
+      }
+      tukey_groups_pct = found_group_contrasts/total_group_contrasts
+      
+      overview <- rbind(overview,c(mu_name, sd, r, anova_test, tukey_individuals_pct, tukey_groups_pct))
     }
   }
 }
+colnames(overview) <- c("mu_list", "std", "replicates", "anova_p", "tukey_pct_individuals", "tukey_pct_groups")
+write.csv(overview, "overview.csv")
 ```
 
 
