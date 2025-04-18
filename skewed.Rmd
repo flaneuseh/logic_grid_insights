@@ -9,76 +9,159 @@ output: html_document
  
 ```{r setup, include=FALSE}
 #install and load packages here
-knitr::opts_chunk$set(echo = TRUE)
+## knitr::opts_chunk$set(echo = TRUE)
+install.packages(c("knitr", "ggsurvfit","flexsurv", "sn" , "dplyr", "survival", "ggplot2", "here", "tibble, survminer"))
+```
+
+```{r}
+#install and load packages here
+library("flexsurv")
 library(data.table)
 library(ggplot2)
+library(survival)
+library("survminer")
+library("sn")
+library(stringr)
+library(knitr)
+library(dplyr)
+library(survival)
+library(ggplot2)
+library("ggsurvfit")
+library(tibble)
 ```
 
 #### RUN THIS AND VERIFY EVERYTHING APPEARS IN THE OUTPUT AS EXPECTED BEFORE YOU TURN IT IN
-
-#### Problem #1
-
-##### a)
+simulating the data
 ```{r}
-#add code here 
-insights <- c("CROSS_OUT","OPENING","APPLY_IS","APPLY_NOT","APPLY_OR","APPLY_BEFORE_ONE_SPOT","APPLY_BEFORE_N_SPOTS","APPLY_BEFORE_UNDEFINED_SPOTS","SIMPLE_OR_SAME_CAT","SIMPLE_OR_DIFF_CAT","BEFORE_DIFF_CAT","BEFORE_ONE_SPOT_NOINFO","BEFORE_N_SPOTS_NOINFO","TRANS_ABC_TRUE","TRANS_ABC_FALSE","BEFORE_N_SPOTS_SHIFT","BEFORE_N_SPOTS_CROSSCHECK","TRANS_SETS")
-max_time <- 100
-df<- data.frame(matrix(nrow=1000,ncol=length(insights)))
-colnames(df) <- insights
-for (i in 1:length(insights)){
-    skewdness <- runif(n=1,min=1,max=7)
-    times <- rbeta(n=1000,shape1 = 10, shape2 = skewdness) * max_time 
-    df[insights[i]] <- times
+true_order <- c(
+  'SIMPLE_OR_SAME_CAT',
+  'SIMPLE_OR_DIFF_CAT',
+  'BEFORE_DIFF_CAT',
+  'BEFORE_ONE_SPOT_NOINFO',
+  'BEFORE_N_SPOTS_NOINFO',
+  'TRANS_ABC_TRUE',
+  'TRANS_ABC_FALSE',
+  'BEFORE_N_SPOTS_SHIFT',
+  'BEFORE_N_SPOTS_CROSSCHECK',
+  'TRANS_SETS'
+)
+
+# Insights all have a small difference in mu (20s)
+constant_delta <- list(
+  SIMPLE_OR_SAME_CAT = 30,
+  SIMPLE_OR_DIFF_CAT = 50,
+  BEFORE_DIFF_CAT = 70,
+  BEFORE_ONE_SPOT_NOINFO = 90,
+  BEFORE_N_SPOTS_NOINFO = 110,
+  TRANS_ABC_TRUE = 130,
+  TRANS_ABC_FALSE = 150,
+  BEFORE_N_SPOTS_SHIFT = 170,
+  BEFORE_N_SPOTS_CROSSCHECK = 190,
+  TRANS_SETS = 210
+)
+# Insights are grouped. Within the group the difference in mu is very small (5s) but between groups it is more pronounced (20s)
+grouped_delta <- list(
+  # Beginner
+  SIMPLE_OR_SAME_CAT = 30,
+  SIMPLE_OR_DIFF_CAT = 35,
+  BEFORE_DIFF_CAT = 40,
+  # Intermediate
+  BEFORE_ONE_SPOT_NOINFO = 60,
+  BEFORE_N_SPOTS_NOINFO = 65,
+  TRANS_ABC_TRUE = 70,
+  TRANS_ABC_FALSE = 75,
+  # Expert
+  BEFORE_N_SPOTS_SHIFT = 95,
+  BEFORE_N_SPOTS_CROSSCHECK = 100,
+  TRANS_SETS = 105
+)
+
+muss <- list(constant_delta, grouped_delta)
+# Testing with different sds.
+sds <- c(10, 30, 60)
+## sds <- c(10)
+# Testing with different numbers of replicates 
+rs <- c(2, 5, 10, 15, 20)
+## rs <- c(2000)
+```
+
+```{r}
+for (mus in muss) {
+  for (sd in sds) {
+    for (r in rs) {
+      simdata<-data.frame(
+        a = c(),
+        b = c(),
+        c = c(),
+        mu = c()
+      );
+      for (insight in names(mus)) {
+        mu <- mus[insight]
+        params <- cp2dp(c(as.numeric(mu)+100, as.numeric(sd), -0.992), "SN")
+        pre_pro_data <- rsn(r,dp=params)
+        t <- pre_pro_data
+        t <- sapply(t,function(x) max(0,x))
+        status <- as.numeric(t<300)
+        new_rows <- data.frame(a=t,b=rep(insight,times=r), c=status)
+        simdata <- rbind(simdata,new_rows)
+       }
+      mu_name = ""
+      if (identical(mus, constant_delta)) {
+        mu_name = "constant"
+      }
+      else if (identical(mus, grouped_delta)) {
+        mu_name = "grouped"
+      }
+      colnames(simdata) <- c("Time", "Insight", "Status")
+      simdata$Time <- as.numeric(simdata$Time)
+      simdata$Insight <- as.factor(simdata$Insight)
+      simdata$Status <-as.numeric(simdata$Status)
+      write.csv(simdata, str_interp("csvs/skewed_mu-${mu_name}_sd-${sd}_r-${r}"))
+      }
+    }
 }
 ```
 
-add interpretation and notes here 
-
-##### b)
 ```{r}
-hist(df$CROSS_OUT)
+expLogMeanFinish = function(Delta, alpha, pwr){
+  z.alpha = qnorm(alpha, lower.tail=F)
+  z.beta = qnorm(1-pwr, lower.tail=F)
+  num = (z.alpha + z.beta)^2
+  denom = (log(Delta))^2
+  dd = num/denom
+  dd
+}
 ```
 
-##### c)
-  
-  
-#### Additional formatting guidelines: 
-
-  
-
- wjFor questions where you need to print formulas, please use this formatting: 
-$$
-y = b_0 + b_1X
-$$
-
-
-how to print a vector:
-$$
-\begin{bmatrix}
-item \\ 
-item \\
-item
-\end{bmatrix}
-$$
-
-how to print a matrix:
-$$
-\begin{bmatrix}
-item & item & item\\
-item & item & item\\
-item & item & item\\
-\end{bmatrix}
-$$
-
-For questions where you need to print plots, please use clear formatting for title and axes labels (note: you don't have to use ggplot, you can use base R for plotting too).
-    
-  
-Example scatter plot:
 ```{r}
-data(iris)
-ggplot(iris) + aes(Petal.Length,Sepal.Length,color= Species) +
-  geom_point() + theme_bw() + 
-  ggtitle("Relationship between petal and sepal length in iris flower species") + 
-  labs(x="Petal length (cm)", y="Sepal length (cm)")
-
+list_of_csvs <- list.files("csvs", full.names=FALSE)
+for (csv in list_of_csvs){
+    df<- read.csv(str_interp("csvs/${csv}"))
+    min_surv <- nrow(df)
+    max_surv <- 0
+    for (insight in unique(df$Insight)){
+        temp <- df[df$Insight == insight,]
+        min_surv <- min(min_surv, nrow(temp[temp$Status == 1,]))
+        max_surv <- max(max_surv, nrow(temp[temp$Time == 1,]))
+    }
+    min_surv <- max(1,min_surv)
+    max_surv <- max(1,max_surv)
+    delta <- min_surv / max_surv
+    min_n <- ceiling(expLogMeanFinish(delta, 0.05,0.8))
+    diff_model <- survdiff(Surv(Time, Status)~factor(Insight), data=df)
+    diff_df <- data.frame(n=diff_model$obs, exp=diff_model$exp, chisq=rep(diff_model$chisq,length(diff_model$obs)), pvalue=rep(diff_model$pvalue, length(diff_model$obs)))
+    write.csv(diff_df, file=str_interp("tables/${csv}-diff_table.csv"), row.names=FALSE)
+    plt <- survfit2(Surv(Time, Status) ~ factor(Insight), data = df) %>% ggsurvfit() +labs(
+    x = "Seconds",
+    y = "Overall survival probability") + add_confidence_interval()
+    ggsave(str_interp("plots/${csv}-cf_plot.pdf"),width = 60, height = 36, units = "cm")
+    pair_wise<-pairwise_survdiff(Surv(Time,Status)~Insight,data=df)
+    write.csv(pair_wise$p.value, file=str_interp("tables/${csv}-pair_wise_table.csv"), row.names=FALSE)
+}
 ```
+
+
+ 
+
+  
+
